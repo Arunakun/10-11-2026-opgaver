@@ -52,6 +52,16 @@ namespace Webshop.Events
         }
     }
 
+    public class LowStockEventArgs : EventArgs
+    {
+        public Product Product { get; }
+
+        public LowStockEventArgs(Product product)
+        {
+            Product = product;
+        }
+    }
+
     // Publisher: kurven fortæller andre, når der sker noget
     public class ShoppingCart
     {
@@ -89,6 +99,8 @@ namespace Webshop.Events
 
     public class Lager
     {
+        public event EventHandler<LowStockEventArgs>? LowStock;
+
         public void Subscribe(ShoppingCart cart)
         {
             cart.ItemAdded += OnItemAdded;
@@ -99,6 +111,25 @@ namespace Webshop.Events
             e.Product.StockQuantity -= e.Quantity;
             Console.WriteLine($"Ny lagerbeholdning på {e.Product.ProductName}: " +
                 $"{e.Product.StockQuantity} stk.");
+
+            if (e.Product.StockQuantity < 5)
+            {
+                LowStock?.Invoke(this, new LowStockEventArgs(e.Product));
+            }
+        }
+    }
+
+    public class Indkoeb()
+    {
+        public void Subscribe(Lager lager)
+        {
+            lager.LowStock += OnLowStock;
+        }
+
+        private void OnLowStock(object? sender, LowStockEventArgs e)
+        {
+            Console.WriteLine($"Indkøb: Bestil flere {e.Product.ProductName} " +
+                $"({e.Product.StockQuantity} stk. tilbage på lager)");
         }
     }
 
