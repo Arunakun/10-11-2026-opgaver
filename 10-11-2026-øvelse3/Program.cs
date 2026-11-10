@@ -20,11 +20,17 @@ namespace _10_11_2026_øvelse3
             Product nokia = WebshopData.Products[2]; // Nokia telefon, 2 på lager
             Product statTlf = WebshopData.Products[3]; // Stationær telefon, 50 på lager
 
-            cart.AddItem(samsung, 2);
+            /*cart.AddItem(samsung, 2);
             cart.AddItem(iphone, 1);
             cart.AddItem(iphone, 1);
             cart.AddItem(nokia, 1);
-            cart.AddItem(statTlf, 2);
+            cart.AddItem(statTlf, 2);*/
+
+            cart.AddItem(samsung, 2);
+            cart.AddItem(iphone, 1);
+
+            cart.RemoveItem(samsung, 2);
+            cart.RemoveItem(iphone, 1);
         }
     }
 }

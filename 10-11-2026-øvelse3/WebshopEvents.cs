@@ -55,10 +55,12 @@ namespace Webshop.Events
     public class LowStockEventArgs : EventArgs
     {
         public Product Product { get; }
+        public int Quantity { get; }
 
-        public LowStockEventArgs(Product product)
+        public LowStockEventArgs(Product product, int quantity)
         {
             Product = product;
+            Quantity = quantity;
         }
     }
 
@@ -73,6 +75,7 @@ namespace Webshop.Events
 
         // TODO Øvelse 3.1: Erklær eventet ItemAdded her (EventHandler<CartEventArgs>)
         public event EventHandler<CartEventArgs>? ItemAdded;
+        public event EventHandler<LowStockEventArgs>? ItemRemoved;
 
         public void AddItem(Product product, int quantity)
         {
@@ -81,13 +84,31 @@ namespace Webshop.Events
             // TODO Øvelse 3.1: Udløs ItemAdded her med ?.Invoke(this, new CartEventArgs(...))
             ItemAdded?.Invoke(this, new CartEventArgs(product, quantity, Total));
         }
+
+        public void RemoveItem(Product product, int quantity)
+        {
+            var existing = _items.FirstOrDefault(i => i.Product.ProductId == product.ProductId);
+            if (existing is null) return;
+
+            _items.Remove(new CartItem { Product = product});
+            ItemRemoved?.Invoke(this, new LowStockEventArgs(product, quantity));
+        }
     }
 
     public class Kvittering
     {
         public void Subscribe(ShoppingCart cart)
         {
-            cart.ItemAdded += OnItemAdded;
+            cart.ItemAdded += (sender, e) =>
+            {
+                Console.WriteLine($"Kvittering: {e.Quantity}x {e.Product.ProductName}" +
+                $" à {e.Product.Price}\nKurv i alt: {e.CartTotal}\n");
+            };
+        }
+
+        public void Unsubscribe(ShoppingCart cart)
+        {
+            cart.ItemAdded -= OnItemAdded;
         }
 
         public void OnItemAdded(object? sender, CartEventArgs e)
@@ -103,19 +124,25 @@ namespace Webshop.Events
 
         public void Subscribe(ShoppingCart cart)
         {
-            cart.ItemAdded += OnItemAdded;
+            cart.ItemAdded += (s, e) =>
+            {
+                e.Product.StockQuantity -= e.Quantity;
+                Console.WriteLine($"Ny lagerbeholdning på {e.Product.ProductName}: " +
+                    $"{e.Product.StockQuantity} stk.");
+
+                if (e.Product.StockQuantity < 5)
+                {
+                    LowStock?.Invoke(this, new LowStockEventArgs(e.Product, e.Quantity));
+                }
+            };
+            cart.ItemRemoved += OnItemRemoved;
         }
 
-        private void OnItemAdded(object? sender, CartEventArgs e)
+        private void OnItemRemoved(object? sender, LowStockEventArgs e)
         {
-            e.Product.StockQuantity -= e.Quantity;
+            e.Product.StockQuantity += e.Quantity;
             Console.WriteLine($"Ny lagerbeholdning på {e.Product.ProductName}: " +
                 $"{e.Product.StockQuantity} stk.");
-
-            if (e.Product.StockQuantity < 5)
-            {
-                LowStock?.Invoke(this, new LowStockEventArgs(e.Product));
-            }
         }
     }
 
@@ -128,7 +155,7 @@ namespace Webshop.Events
 
         private void OnLowStock(object? sender, LowStockEventArgs e)
         {
-            Console.WriteLine($"Indkøb: Bestil flere {e.Product.ProductName} " +
+            Console.WriteLine($"Indkoeb: Bestil flere {e.Product.ProductName} " +
                 $"({e.Product.StockQuantity} stk. tilbage på lager)");
         }
     }
